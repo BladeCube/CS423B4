@@ -148,7 +148,7 @@ public class Agent : MonoBehaviour
           Vector3 delta_v = Vector3.Scale(agents[i].attachedRigidbody.velocity - rb.velocity, t_ij);
 
 
-          //USING CONSTANTS A = 1, B = 1, k = 5, kappa = 2 idrk what constants we're supposed to use
+          //all agent forces together
           float repulsionForce = Ai * (float)Math.Exp(ri - dist) / Bi;
           float penetrationForce = k_constant*g;
           Vector3 repulsion_and_penetration = (repulsionForce + penetrationForce) * n_ij;
