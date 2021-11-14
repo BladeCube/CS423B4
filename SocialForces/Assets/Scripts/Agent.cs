@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
+using System;
 
 public class Agent : MonoBehaviour
 {
@@ -13,6 +14,7 @@ public class Agent : MonoBehaviour
     private List<Vector3> path;
     private NavMeshAgent nma;
     private Rigidbody rb;
+    private List<Collider> agents = new List<Collider>();
 
     private HashSet<GameObject> perceivedNeighbors = new HashSet<GameObject>();
 
@@ -96,7 +98,7 @@ public class Agent : MonoBehaviour
     private Vector3 ComputeForce()
     {
         var force = Vector3.zero;
-        force = CalculateGoalForce();
+        force = CalculateGoalForce() + CalculateAgentForce() + CalculateWallForce();
         if (force != Vector3.zero)
         {
             return force.normalized * Mathf.Min(force.magnitude, Parameters.maxSpeed);
@@ -108,19 +110,55 @@ public class Agent : MonoBehaviour
 
     private Vector3 CalculateGoalForce()
     {
+      if(path.Count > 0){
         Vector3 ei_0 = (path[0] - transform.position).normalized;
         Vector3 vi = rb.velocity;
         float vi_0  = 5;
         float mass = rb.mass;
 
-        Vector3 goalForce = ((vi_0 * ei_0) - vi) * mass;
+        Vector3 goalForce = (((vi_0 * ei_0) - vi)/0.5f) * mass;
 
         return goalForce;
+      }
+      else{
+        return Vector3.zero;
+      }
+
     }
 
     private Vector3 CalculateAgentForce()
     {
-        return Vector3.zero;
+        Vector3 agentForce = new Vector3(0.0f, 0.0f, 0.0f);
+        float ri = radius; //radius of agents
+
+        for(int i = 0; i < agents.Count; i++){
+          //declaring constants, not too sure what they're supposed to be I think we choose
+          float Ai = 1;
+          float Bi = 1;
+          float k_constant = 5;
+          float kappa = 5;
+
+          //below is used to calculate repulsion force and non penetration force
+          float dist = Vector3.Distance(agents[i].gameObject.transform.position, transform.position); //distance between the two agents
+          Vector3 n_ij = (transform.position - agents[i].gameObject.transform.position)/dist; //normal vector
+          float g = dist > 0 ? dist : 0; // g function, 0 if dist < 0, distance otherwise
+
+          //below is to calculate sliding/friction force
+          Vector3 t_ij = new Vector3(-n_ij.z, 0.0f, n_ij.x);
+          Vector3 delta_v = Vector3.Scale(agents[i].attachedRigidbody.velocity - rb.velocity, t_ij);
+
+
+          //USING CONSTANTS A = 1, B = 1, k = 5, kappa = 2 idrk what constants we're supposed to use
+          float repulsionForce = Ai * (float)Math.Exp(ri - dist) / Bi;
+          float penetrationForce = k_constant*g;
+          Vector3 repulsion_and_penetration = (repulsionForce + penetrationForce) * n_ij;
+          Vector3 slidingForce = (kappa*g)*Vector3.Scale(delta_v, t_ij);
+          Vector3 agentForceij = repulsion_and_penetration + slidingForce;
+          Debug.Log(agentForceij);
+          agentForce += agentForceij;
+        }
+
+        return agentForce;
     }
 
     private Vector3 CalculateWallForce()
@@ -138,12 +176,18 @@ public class Agent : MonoBehaviour
 
     public void OnTriggerEnter(Collider other)
     {
-
+      //when colliding with another agent, add to agent list
+      if(other.gameObject.tag == "agent"){
+        agents.Add(other);
+      }
     }
 
     public void OnTriggerExit(Collider other)
     {
-
+      //once agent leaves the collision radius, remove from list
+      if(other.gameObject.tag == "agent"){
+        agents.Remove(other);
+      }
     }
 
     public void OnCollisionEnter(Collision collision)
