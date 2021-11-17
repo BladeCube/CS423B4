@@ -99,8 +99,8 @@ public class Agent : MonoBehaviour
     private Vector3 ComputeForce()
     {
         var force = Vector3.zero;
-        force = CalculateGoalForce() + CalculateAgentForce() ;
-        //force = CalculateGoalForce() + CalculateAgentForce() + CalculateWallForce();
+        //force = CalculateGoalForce() ;
+        force = CalculateGoalForce() + CalculateAgentForce() + CalculateWallForce();
         if (force != Vector3.zero)
         {
             return force.normalized * Mathf.Min(force.magnitude, Parameters.maxSpeed);
@@ -136,15 +136,16 @@ public class Agent : MonoBehaviour
         for(int i = 0; i < agents.Count; i++){
           //declaring constants, not too sure what they're supposed to be I think we choose
           //Debug.Log("I is "+ i+ " walls.Count is "+agents.Count);
-          float Ai = 1;
-          float Bi = 1;
-          float k_constant = 5;
-          float kappa = 5;
+          if (agents[i].gameObject.activeSelf){
+          float Ai = 2000f;
+          float Bi = 0.08f;
+          float k_constant = 1.2f * 100000f;
+          float kappa = 2.4f * 100000f;
 
           //below is used to calculate repulsion force and non penetration force
           float dist = Vector3.Distance(agents[i].gameObject.transform.position, transform.position); //distance between the two agents
           Vector3 n_ij = (transform.position - agents[i].gameObject.transform.position)/dist; //normal vector
-          float g = dist > 0 ? dist : 0; // g function, 0 if dist < 0, distance otherwise
+          float g = 2*ri-dist > 0 ? 1 : 0; // g function, 0 if dist < 0, distance otherwise
 
           //below is to calculate sliding/friction force
           Vector3 t_ij = new Vector3(-n_ij.z, 0.0f, n_ij.x);
@@ -162,6 +163,7 @@ public class Agent : MonoBehaviour
           //Debug.Log(agentForceij);
           agentForce += agentForceij;
         }
+        }
 
         return agentForce;
     }
@@ -173,15 +175,16 @@ public class Agent : MonoBehaviour
 
       for(int i = 0; i < walls.Count; i++){
         //declaring constants, not too sure what they're supposed to be I think we choose
-        float Ai = 1;
-        float Bi = 1;
-        float k_constant = 5;
-        float kappa = 5;
+        float Ai = 2000f;
+        float Bi = 0.08f;
+        float k_constant = 1.2f * 100000f;
+        float kappa = 2.4f * 100000f;
 
         //below is used to calculate repulsion force and non penetration force
+        if (walls[i].gameObject.activeSelf){
         float dist = Vector3.Distance(walls[i].gameObject.transform.position, transform.position); //distance between the two agents
         Vector3 n_ij = (transform.position - walls[i].gameObject.transform.position)/dist; //normal vector
-        float g = dist > 0 ? dist : 0; // g function, 0 if dist < 0, distance otherwise
+        float g = 2*ri-dist > 0 ? 1 : 0; // g function, 0 if dist < 0, distance otherwise
 
         //below is to calculate sliding/friction force
         Vector3 t_ij = new Vector3(-n_ij.z, 0.0f, n_ij.x);
@@ -193,10 +196,11 @@ public class Agent : MonoBehaviour
         Vector3 repulsionForce = Ai * (float)Math.Exp((ri - dist) / Bi)*n_ij;
         Vector3 penetrationForce = k_constant*g*(ri - dist)* n_ij;
         Vector3 repulsion_and_penetration = (repulsionForce + penetrationForce) ;
-        Vector3 slidingForce = (kappa*g)*Vector3.Scale(Vector3.Scale(rb.velocity, t_ij),t_ij);
+        Vector3 slidingForce = (kappa*g)*(Vector3.Dot(rb.velocity, t_ij)*t_ij);
         Vector3 wallForceij = repulsion_and_penetration + slidingForce;
-        Debug.Log(wallForceij);
+        //Debug.Log(wallForceij);
         wallForce += wallForceij;
+        }
       }
 
       return wallForce;
