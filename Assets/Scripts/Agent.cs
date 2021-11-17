@@ -184,7 +184,14 @@ public class Agent : MonoBehaviour
         if (walls[i].gameObject.activeSelf){
         float dist = Vector3.Distance(walls[i].gameObject.transform.position, transform.position); //distance between the two agents
         Vector3 n_ij = (transform.position - walls[i].gameObject.transform.position)/dist; //normal vector
-        float g = 2*ri-dist > 0 ? 1 : 0; // g function, 0 if dist < 0, distance otherwise
+        Vector3 between=walls[i].gameObject.transform.position- transform.position;
+        float g;
+        if (between.z<walls[i].gameObject.transform.localScale.z/2+ri){
+            g = ri+walls[i].gameObject.transform.localScale.x/2-dist > 0 ? 1 : 0;
+        } else {
+            g = ri+walls[i].gameObject.transform.localScale.z/2-dist > 0 ? 1 : 0;
+        }
+        //float g = 2*ri-dist > 0 ? 1 : 0; // g function, 0 if dist < 0, distance otherwise
 
         //below is to calculate sliding/friction force
         Vector3 t_ij = new Vector3(-n_ij.z, 0.0f, n_ij.x);
